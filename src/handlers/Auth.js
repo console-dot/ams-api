@@ -39,7 +39,10 @@ class Auth extends Response {
       } else {
         token = jwt.sign({ employeeExist }, process.env.JWT_SECRET);
       }
-      return this.sendResponse(req, res, { data: { token, employeeExist } });
+      return this.sendResponse(req, res, {
+        data: { token, employeeExist },
+        message: 'Login Successful',
+      });
     } catch (err) {
       console.log(err);
       return this.sendResponse(req, res, {
