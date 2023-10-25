@@ -12,7 +12,7 @@ class File extends Response {
       const uploaded = await newFile.save();
       return this.sendResponse(req, res, {
         status: 201,
-        data: uploaded,
+        data: uploaded?._id,
       });
     } catch (err) {
       console.log(err);
@@ -25,6 +25,12 @@ class File extends Response {
   getFile = async (req, res) => {
     try {
       const { id } = req.params;
+      if (!id) {
+        return this.sendResponse(req, res, {
+          status: 405,
+          message: 'ID is required!',
+        });
+      }
       const file = await FileModel.findOne({ _id: id });
       if (!file) {
         return this.sendResponse(req, res, {

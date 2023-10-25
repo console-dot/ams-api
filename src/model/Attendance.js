@@ -10,6 +10,7 @@ const attendance = Schema({
     type: Date,
     default: Date.now,
   },
+  status: String,
   checkout: Date,
 });
 

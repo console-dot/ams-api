@@ -40,6 +40,31 @@ class Attendance extends Response {
       });
     }
   };
+  searchEmployeeAttendance = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { start, end } = req.query;
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+      const newEndDate = new Date(endDate);
+      newEndDate.setDate(newEndDate.getDate() + 1);
+      const updatedDate = newEndDate.toISOString();
+      const attendance = await AttendanceModel.find({
+        employeeId: id,
+        checkin: {
+          $gte: startDate,
+          $lte: updatedDate,
+        },
+      });
+      return this.sendResponse(req, res, { data: attendance });
+    } catch (err) {
+      console.log(err);
+      return this.sendResponse(req, res, {
+        message: 'Internal Server Error',
+        status: 500,
+      });
+    }
+  };
   markAttendance = async (req, res) => {
     try {
       const { employeeId, key } = req.body;
@@ -74,9 +99,16 @@ class Attendance extends Response {
         checkout: null,
       });
       if (attendanceExist) {
+        let currStatus = 'half';
+        const s = new Date(attendanceExist?.checkin);
+        const e = new Date();
+        const diff = e - s;
+        if (diff / (1000 * 60 * 60) >= 8) {
+          currStatus = 'full';
+        }
         await AttendanceModel.updateOne(
           { _id: attendanceExist?._id },
-          { $set: { checkout: Date.now() } }
+          { $set: { checkout: Date.now(), status: currStatus } }
         );
         await QrModel.deleteMany({});
         return this.sendResponse(req, res, {

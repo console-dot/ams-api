@@ -4,6 +4,7 @@ const { DepartmentModel } = require('./Department');
 const { DesignationModel } = require('./Designation');
 const { AttendanceModel } = require('./Attendance');
 const { QrModel } = require('./Qr');
+const { ResetPasswordModel } = require('./ResetPassword');
 
 module.exports = {
   EmployeeModel,
@@ -12,4 +13,5 @@ module.exports = {
   DesignationModel,
   AttendanceModel,
   QrModel,
+  ResetPasswordModel,
 };
