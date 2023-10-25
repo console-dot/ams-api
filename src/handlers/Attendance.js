@@ -30,7 +30,22 @@ class Attendance extends Response {
   getEmployeeAttendance = async (req, res) => {
     try {
       const { id } = req.params;
-      const attendance = await AttendanceModel.find({ employeeId: id });
+      const currentDate = new Date();
+
+      // Find the first day of the current week (Monday)
+      const firstDayOfWeek = new Date(currentDate);
+      firstDayOfWeek.setDate(currentDate.getDate() - currentDate.getDay() + 1);
+      firstDayOfWeek.setHours(0, 0, 0, 0); // Set to midnight
+
+      // Find the last day of the current week (Sunday)
+      const lastDayOfWeek = new Date(firstDayOfWeek);
+      lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
+      lastDayOfWeek.setHours(23, 59, 59, 999);
+
+      const attendance = await AttendanceModel.find({
+        employeeId: id,
+        checkin: { $gte: firstDayOfWeek, $lt: lastDayOfWeek },
+      });
       return this.sendResponse(req, res, { data: attendance });
     } catch (err) {
       console.log(err);
