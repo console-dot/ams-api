@@ -115,6 +115,24 @@ class Attendance extends Response {
           message: 'Check-out successfull',
         });
       }
+      const today = new Date();
+      const startOfDay = new Date(today);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(today);
+      endOfDay.setHours(23, 59, 59, 999);
+      const attendanceExistSameDay = await AttendanceModel.findOne({
+        checkin: { $gte: startOfDay, $lt: endOfDay },
+      });
+      if (attendanceExistSameDay) {
+        const checkoutTime = new Date(attendanceExistSameDay?.checkout);
+        const diff = today - checkoutTime;
+        if (diff / (1000 * 60 * 60) < 8) {
+          return this.sendResponse(req, res, {
+            message: 'Already checked-in today.',
+            status: 405,
+          });
+        }
+      }
       const newAttendance = new AttendanceModel({ employeeId });
       await newAttendance.save();
       await QrModel.deleteMany({});
