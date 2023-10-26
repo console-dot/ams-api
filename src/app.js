@@ -13,11 +13,17 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Static IP Code
+const allowedIP = '116.58.56.154';
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '116.58.56.154');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
-  next();
+  const clientIP = req.ip; // Get the client's IP address
+
+  if (clientIP === allowedIP) {
+    // If the client's IP matches the allowed IP, proceed with the request.
+    next();
+  } else {
+    // If the client's IP doesn't match, send a 403 Forbidden response.
+    res.status(403).json({ message: 'Access denied', status: 403 });
+  }
 });
 // API ENDPOINT
 app.use('/api/v1', router);
