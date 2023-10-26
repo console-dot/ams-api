@@ -137,6 +137,7 @@ class Attendance extends Response {
       endOfDay.setHours(23, 59, 59, 999);
       const attendanceExistSameDay = await AttendanceModel.findOne({
         checkin: { $gte: startOfDay, $lt: endOfDay },
+        employeeId,
       });
       if (attendanceExistSameDay) {
         const checkoutTime = new Date(attendanceExistSameDay?.checkout);
