@@ -12,6 +12,13 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
+// Static IP Code
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'http://116.58.56.154');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+});
 // API ENDPOINT
 app.use('/api/v1', router);
 
