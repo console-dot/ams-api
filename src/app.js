@@ -22,7 +22,7 @@ app.use((req, res, next) => {
     next();
   } else {
     // If the client's IP doesn't match, send a 403 Forbidden response.
-    res.status(403).json({ message: 'Access denied', status: 403 });
+    res.status(403).json({ message: 'Access denied', status: 403, ip: req.ip });
   }
 });
 // API ENDPOINT
