@@ -130,6 +130,8 @@ class Attendance extends Response {
           return this.sendResponse(req, res, {
             message: 'Check-out successfull',
           });
+        } else {
+          return this.sendResponse(req, res, { message: '000' });
         }
       }
       const today = new Date();
