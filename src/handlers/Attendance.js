@@ -121,14 +121,16 @@ class Attendance extends Response {
         if (diff / (1000 * 60 * 60) >= 8) {
           currStatus = 'full';
         }
-        await AttendanceModel.updateOne(
-          { _id: attendanceExist?._id },
-          { $set: { checkout: Date.now(), status: currStatus } }
-        );
-        await QrModel.deleteMany({});
-        return this.sendResponse(req, res, {
-          message: 'Check-out successfull',
-        });
+        if (diff / (1000 * 60 * 60) >= 1) {
+          await AttendanceModel.updateOne(
+            { _id: attendanceExist?._id },
+            { $set: { checkout: Date.now(), status: currStatus } }
+          );
+          await QrModel.deleteMany({});
+          return this.sendResponse(req, res, {
+            message: 'Check-out successfull',
+          });
+        }
       }
       const today = new Date();
       const startOfDay = new Date(today);
