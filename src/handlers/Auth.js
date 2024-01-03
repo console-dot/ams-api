@@ -1,27 +1,54 @@
-const { EmployeeModel, ResetPasswordModel } = require('../model');
-const Mailer = require('./Mailer');
-const Response = require('./Response');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+const { EmployeeModel, ResetPasswordModel } = require("../model");
+const Mailer = require("./Mailer");
+const Response = require("./Response");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 class Auth extends Response {
   login = async (req, res) => {
     try {
       const { username, password, remember } = req.body;
+      let employeeExist;
+      const domain = req.get("host");
       if (!username || !password) {
         return this.sendResponse(req, res, {
           status: 405,
-          message: 'Username/Password required',
+          message: "Username/Password required",
         });
       }
-      const employeeExist = await EmployeeModel.findOne({
-        $or: [{ email: username }, { employeeId: username }],
-      });
-      if (!employeeExist) {
-        return this.sendResponse(req, res, {
-          status: 405,
-          message: 'Username/Password not correct',
+      if (domain === "hrm.consoledot") {
+        employeeExist = await EmployeeModel.findOne({
+          $or: [{ email: username }, { employeeId: username }],
         });
+
+        if (!employeeExist) {
+          return this.sendResponse(req, res, {
+            status: 405,
+            message: "Username/Password not correct",
+          });
+        }
+        const user = await EmployeeModel.findById(employeeExist?._id).populate(
+          "designation"
+        );
+        const userDesignation = user?.designation?.title;
+
+        if (userDesignation !== "Director HR") {
+          return this.sendResponse(req, res, {
+            message:
+              "Access denied. Only HR department can perform this action.",
+            status: 403,
+          });
+        }
+      } else {
+        employeeExist = await EmployeeModel.findOne({
+          $or: [{ email: username }, { employeeId: username }],
+        });
+        if (!employeeExist) {
+          return this.sendResponse(req, res, {
+            status: 405,
+            message: "Username/Password not correct",
+          });
+        }
       }
       const password0 = employeeExist?.password;
       const isValid = await bcrypt.compare(password, password0);
@@ -41,12 +68,12 @@ class Auth extends Response {
       }
       return this.sendResponse(req, res, {
         data: { token, employeeExist },
-        message: 'Login Successful',
+        message: "Login Successful",
       });
     } catch (err) {
       console.log(err);
       return this.sendResponse(req, res, {
-        message: 'Internal Server Error',
+        message: "Internal Server Error",
         status: 500,
       });
     }
@@ -56,7 +83,7 @@ class Auth extends Response {
       const { email } = req.body;
       if (!email) {
         return this.sendResponse(req, res, {
-          message: 'Email is required',
+          message: "Email is required",
           status: 405,
         });
       }
@@ -86,7 +113,7 @@ class Auth extends Response {
                 <p>Hello,</p>
                 <p>You have requested to reset your password. To complete the password reset process, please click the following link:</p>
                 <p><a href="${
-                  process.env.BASE_URL || 'http://localhost:3000'
+                  process.env.BASE_URL || "http://localhost:3000"
                 }/reset-password?key=${key}" style="background-color: #0078d4; color: #fff; padding: 10px 20px; text-decoration: none;">Reset Password</a></p>
                 <p>If you did not request a password reset, you can ignore this email.</p>
                 <p>Thank you,</p>
@@ -104,7 +131,7 @@ class Auth extends Response {
         mailer.sendMail(
           process.env.MAIL_EMAIL,
           email,
-          'Reset Password Link',
+          "Reset Password Link",
           html
         );
         const newKey = new ResetPasswordModel({ email, key });
@@ -112,12 +139,12 @@ class Auth extends Response {
       }
       return this.sendResponse(req, res, {
         message:
-          'Reset link will be sent to your email address if found in our records',
+          "Reset link will be sent to your email address if found in our records",
       });
     } catch (err) {
       console.log(err);
       return this.sendResponse(req, res, {
-        message: 'Internal Server Error',
+        message: "Internal Server Error",
         status: 500,
       });
     }
@@ -127,19 +154,19 @@ class Auth extends Response {
       const { key, password1, password2 } = req.body;
       if (!key) {
         return this.sendResponse(req, res, {
-          message: 'Key is required',
+          message: "Key is required",
           status: 405,
         });
       }
       if (!password1) {
         return this.sendResponse(req, res, {
-          message: 'Password is required',
+          message: "Password is required",
           status: 405,
         });
       }
       if (password1 !== password2) {
         return this.sendResponse(req, res, {
-          message: 'Both passwords should match',
+          message: "Both passwords should match",
           status: 405,
         });
       }
@@ -151,7 +178,7 @@ class Auth extends Response {
         });
         if (!keyExist) {
           return this.sendResponse(req, res, {
-            message: 'Invalid key',
+            message: "Invalid key",
             status: 405,
           });
         }
@@ -162,19 +189,19 @@ class Auth extends Response {
           { $set: { password } }
         );
         return this.sendResponse(req, res, {
-          message: 'Password Updated',
+          message: "Password Updated",
           status: 200,
         });
       } catch (err) {
         return this.sendResponse(req, res, {
-          message: err?.message ? 'Link Expired' : err?.message.toUpperCase(),
+          message: err?.message ? "Link Expired" : err?.message.toUpperCase(),
           status: 405,
         });
       }
     } catch (err) {
       console.log(err);
       return this.sendResponse(req, res, {
-        message: 'Internal Server Error',
+        message: "Internal Server Error",
         status: 500,
       });
     }

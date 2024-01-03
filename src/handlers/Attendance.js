@@ -1,10 +1,16 @@
-const { AttendanceModel, EmployeeModel, QrModel } = require('../model');
-const Response = require('./Response');
+const { io } = require("../app");
+const {
+  AttendanceModel,
+  EmployeeModel,
+  QrModel,
+  ExtraHoursModel,
+} = require("../model");
+const Response = require("./Response");
 
 function generateRandomKey(length) {
   const characters =
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=`~';
-  let randomKey = '';
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=`~";
+  let randomKey = "";
 
   for (let i = 0; i < length; i++) {
     const randomIndex = Math.floor(Math.random() * characters.length);
@@ -15,16 +21,20 @@ function generateRandomKey(length) {
 }
 
 class Attendance extends Response {
-  getAllAttendance = async (req, res) => {
+  getAllAttendance = async () => {
+    console.log("first");
     try {
-      const attendance = await AttendanceModel.find();
-      return this.sendResponse(req, res, { data: attendance });
+      const attendance = await AttendanceModel.find()
+        .populate({
+          path: "employeeId",
+          populate: { path: "designation", populate: { path: "department" } },
+        })
+        .sort({ checkin: -1 });
+
+      return { data: attendance };
     } catch (err) {
-      console.log(err);
-      return this.sendResponse(req, res, {
-        message: 'Internal Server Error',
-        status: 500,
-      });
+      console.error(err);
+      throw { message: "Internal Server Error", status: 500 };
     }
   };
   getEmployeeAttendance = async (req, res) => {
@@ -50,7 +60,7 @@ class Attendance extends Response {
     } catch (err) {
       console.log(err);
       return this.sendResponse(req, res, {
-        message: 'Internal Server Error',
+        message: "Internal Server Error",
         status: 500,
       });
     }
@@ -75,7 +85,7 @@ class Attendance extends Response {
     } catch (err) {
       console.log(err);
       return this.sendResponse(req, res, {
-        message: 'Internal Server Error',
+        message: "Internal Server Error",
         status: 500,
       });
     }
@@ -85,27 +95,27 @@ class Attendance extends Response {
       const { employeeId, key } = req.body;
       if (!employeeId) {
         return this.sendResponse(req, res, {
-          message: 'Employee id is required',
+          message: "Employee id is required",
           status: 405,
         });
       }
       if (!key) {
         return this.sendResponse(req, res, {
-          message: 'Key is required',
+          message: "Key is required",
           status: 405,
         });
       }
       const keyExist = await QrModel.findOne({ key });
       if (!keyExist) {
         return this.sendResponse(req, res, {
-          message: 'Key is invalid',
+          message: "Key is invalid",
           status: 405,
         });
       }
       const employeeExist = await EmployeeModel.findOne({ _id: employeeId });
       if (!employeeExist) {
         return this.sendResponse(req, res, {
-          message: 'Employee not found',
+          message: "Employee not found",
           status: 404,
         });
       }
@@ -114,12 +124,21 @@ class Attendance extends Response {
         checkout: null,
       });
       if (attendanceExist) {
-        let currStatus = 'half';
+        let currStatus = "half";
         const s = new Date(attendanceExist?.checkin);
         const e = new Date();
         const diff = e - s;
+        const extraHours = parseInt(diff) - 9;
+        if (extraHours > 0) {
+          const extraHourEntry = new ExtraHoursModel({
+            employeeId: attendanceExist.employeeId,
+            hours: extraHours,
+            date: Date.now(),
+          });
+          await extraHourEntry.save();
+        }
         if (diff / (1000 * 60 * 60) >= 8) {
-          currStatus = 'full';
+          currStatus = "full";
         }
         if (diff / (1000 * 60 * 60) >= 1) {
           await AttendanceModel.updateOne(
@@ -128,10 +147,11 @@ class Attendance extends Response {
           );
           await QrModel.deleteMany({});
           return this.sendResponse(req, res, {
-            message: 'Check-out successfull',
+            message: "Check-out successfull",
+            status: 200,
           });
         } else {
-          return this.sendResponse(req, res, { message: '000' });
+          return this.sendResponse(req, res, { message: "000" });
         }
       }
       const today = new Date();
@@ -148,7 +168,7 @@ class Attendance extends Response {
         const diff = today - checkoutTime;
         if (diff / (1000 * 60 * 60) < 8) {
           return this.sendResponse(req, res, {
-            message: 'Already checked-in today.',
+            message: "Already checked-in today.",
             status: 405,
           });
         }
@@ -157,13 +177,13 @@ class Attendance extends Response {
       await newAttendance.save();
       await QrModel.deleteMany({});
       return this.sendResponse(req, res, {
-        message: 'Check-in successfull',
+        message: "Check-in successfull",
         status: 201,
       });
     } catch (err) {
       console.log(err);
       return this.sendResponse(req, res, {
-        message: 'Internal Server Error',
+        message: "Internal Server Error",
         status: 500,
       });
     }

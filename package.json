@@ -21,7 +21,9 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.6.3",
     "nodemailer": "^6.9.7",
-    "sharp": "^0.32.6"
+    "sharp": "^0.32.6",
+    "socket.io": "^4.7.2",
+    "socket.io-client": "^4.7.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
