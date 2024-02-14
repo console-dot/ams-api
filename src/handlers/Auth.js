@@ -16,7 +16,7 @@ class Auth extends Response {
           message: "Username/Password required",
         });
       }
-      if (domain === "hrm.consoledot") {
+      if (domain === "ams-hr.vercel.app") {
         employeeExist = await EmployeeModel.findOne({
           $or: [{ email: username }, { employeeId: username }],
         });
