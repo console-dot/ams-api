@@ -7,20 +7,19 @@ const jwt = require("jsonwebtoken");
 class Auth extends Response {
   login = async (req, res) => {
     try {
-      const { username, password, remember } = req.body;
+      const { username, password, remember, module } = req.body;
       let employeeExist;
-      const domain = req.get("host");
+      let userDesignation;
       if (!username || !password) {
         return this.sendResponse(req, res, {
           status: 405,
           message: "Username/Password required",
         });
       }
-      if (domain === "hrm.consoledot") {
+      if (module === "hr") {
         employeeExist = await EmployeeModel.findOne({
           $or: [{ email: username }, { employeeId: username }],
         });
-
         if (!employeeExist) {
           return this.sendResponse(req, res, {
             status: 405,
@@ -30,7 +29,7 @@ class Auth extends Response {
         const user = await EmployeeModel.findById(employeeExist?._id).populate(
           "designation"
         );
-        const userDesignation = user?.designation?.title;
+        userDesignation = user?.designation?.title;
 
         if (userDesignation !== "Director HR") {
           return this.sendResponse(req, res, {
@@ -55,7 +54,7 @@ class Auth extends Response {
       if (!isValid) {
         return this.sendResponse(req, res, {
           status: 405,
-          message: 'Username/Password not correct',
+          message: "Username/Password not correct",
         });
       }
       let token;
@@ -67,7 +66,7 @@ class Auth extends Response {
         token = jwt.sign({ employeeExist }, process.env.JWT_SECRET);
       }
       return this.sendResponse(req, res, {
-        data: { token, employeeExist },
+        data: { token, employeeExist, userDesignation },
         message: "Login Successful",
       });
     } catch (err) {
@@ -204,6 +203,34 @@ class Auth extends Response {
         message: "Internal Server Error",
         status: 500,
       });
+    }
+  };
+  refreshToken = async (req, res) => {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ message: "Refresh token not provided" });
+    }
+
+    try {
+      // Verify refresh token
+      const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+      console.log(decoded);
+      // Check if the user exists in the database
+      const user = await EmployeeModel.findOne(decoded.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Generate new access token
+      const accessToken = jwt.sign({ id: user._id }, secretKey, {
+        expiresIn: "15m",
+      });
+
+      res.status(200).json({ accessToken });
+    } catch (error) {
+      console.error("Error refreshing token:", error);
+      return res.status(403).json({ message: "Invalid refresh token" });
     }
   };
 }
