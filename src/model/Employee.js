@@ -21,6 +21,11 @@ const employeeSchema = mongoose.Schema({
     required: true,
     ref: "Designation",
   },
+  department: {
+    type: mongoose.Types.ObjectId,
+    required: true,
+    ref: "Department",
+  },
   phone: { type: String, required: false },
   experience: {
     type: String,
@@ -37,11 +42,8 @@ const employeeSchema = mongoose.Schema({
   endingDate: {
     type: Date,
     required: false,
-  },
-  team: {
-    type: String,
-    required: false,
-  },
+  }
+ 
 });
 
 const EmployeeModel = mongoose.model("Employee", employeeSchema);
