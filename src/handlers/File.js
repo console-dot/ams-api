@@ -13,6 +13,7 @@ class File extends Response {
         });
       }
       const file = req.files.avatar;
+      console.log(file)
       const { mimetype, data, name } = file;
       const temp = await sharp(data).webp({ quality: 20 }).toBuffer();
       const newFile = new FileModel({ mimetype, data: temp, name });
