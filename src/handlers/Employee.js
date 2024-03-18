@@ -6,7 +6,6 @@ class Employee extends Response {
   getAllEmployees = async (req, res) => {
     try {
       const employees = await EmployeeModel.find({})
-        .populate("designation")
         .populate({
           path: "designation",
           populate: {
@@ -26,22 +25,32 @@ class Employee extends Response {
   getOneEmployee = async (req, res) => {
     try {
       const { id } = req.params;
-      const employees = await EmployeeModel.findOne({ _id: id });
-      if (!employees) {
+      const employee = await EmployeeModel.findOne({ _id: id })
+        .populate({
+          path: 'designation',
+          populate: {
+            path: 'department',
+            model: 'Department',
+          },
+        });
+  
+      if (!employee) {
         return this.sendResponse(req, res, {
-          message: "Employee not found",
+          message: 'Employee not found',
           status: 404,
         });
       }
-      return this.sendResponse(req, res, { data: employees });
+  
+      return this.sendResponse(req, res, { data: employee });
     } catch (err) {
       console.log(err);
       return this.sendResponse(req, res, {
-        message: "Internal server error",
+        message: 'Internal server error',
         status: 500,
       });
     }
   };
+  
   createEmployee = async (req, res) => {
     try {
       const {
@@ -59,6 +68,7 @@ class Employee extends Response {
         joiningDate,
         endingDate,
       } = req.body;
+      
       if (password1 !== password2) {
         return this.sendResponse(req, res, {
           status: 405,
@@ -103,6 +113,7 @@ class Employee extends Response {
   updateEmployee = async (req, res) => {
     try {
       const data = req.body;
+      console.log(data)
       const { id } = req.params;
       const employeeExist = await EmployeeModel.findOne({ _id: id });
       if (!employeeExist) {

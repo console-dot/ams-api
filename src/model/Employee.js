@@ -21,11 +21,6 @@ const employeeSchema = mongoose.Schema({
     required: true,
     ref: "Designation",
   },
-  department: {
-    type: mongoose.Types.ObjectId,
-    required: true,
-    ref: "Department",
-  },
   phone: { type: String, required: false },
   experience: {
     type: String,
