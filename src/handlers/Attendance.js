@@ -188,6 +188,83 @@ class Attendance extends Response {
       });
     }
   };
+  // Update
+  updateAttendance = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { employeeId, checkin, checkout } = req.body;
+
+      if (!id || !employeeId) {
+        return this.sendResponse(req, res, {
+          message: "Attendance ID and Employee ID are required",
+          status: 400,
+        });
+      }
+
+      const attendanceRecord = await AttendanceModel.findOne({
+        _id: id,
+        employeeId,
+      });
+
+      if (!attendanceRecord) {
+        return this.sendResponse(req, res, {
+          message: "Attendance record not found",
+          status: 404,
+        });
+      }
+
+      // Use existing values if not provided
+      const newCheckin = checkin
+        ? new Date(checkin)
+        : new Date(attendanceRecord.checkin);
+      const newCheckout = checkout
+        ? new Date(checkout)
+        : new Date(attendanceRecord.checkout);
+
+      // Update Given Fields Only
+      const updateFields = {};
+      if (checkin) updateFields.checkin = new Date(checkin);
+      if (checkout) updateFields.checkout = new Date(checkout);
+
+      // Calculate status if both checkin and checkout are provided
+      if (newCheckin && newCheckout) {
+        const diff = newCheckout - newCheckin;
+        const hoursWorked = diff / (1000 * 60 * 60);
+        let status = "half";
+        if (hoursWorked >= 8) {
+          status = "full";
+        }
+        updateFields.status = status;
+
+        // Calculate extra hours if any
+        const extraHours = hoursWorked - 9;
+        if (extraHours > 0) {
+          const extraHourEntry = new ExtraHoursModel({
+            employeeId: attendanceRecord.employeeId,
+            hours: extraHours,
+            date: new Date(),
+          });
+          await extraHourEntry.save();
+        }
+      }
+
+      await AttendanceModel.updateOne(
+        { _id: id, employeeId },
+        { $set: updateFields }
+      );
+
+      return this.sendResponse(req, res, {
+        message: "Attendance record updated successfully",
+        status: 200,
+      });
+    } catch (err) {
+      console.log(err);
+      return this.sendResponse(req, res, {
+        message: "Internal Server Error",
+        status: 500,
+      });
+    }
+  };
 }
 
 module.exports = { Attendance, generateRandomKey };
