@@ -92,30 +92,26 @@ class Attendance extends Response {
   };
   markAttendance = async (req, res) => {
     try {
-      const { employeeId, key, version } = req.body;
-      console.log(version)
+      const { employeeId, key } = req.body;
       if (!employeeId) {
         return this.sendResponse(req, res, {
           message: "Employee id is required",
           status: 405,
         });
       }
-      if (version !== "v1") {
-        if (!key) {
-          return this.sendResponse(req, res, {
-            message: "Key is required",
-            status: 405,
-          });
-        }
-        const keyExist = await QrModel.findOne({ key });
-        if (!keyExist) {
-          return this.sendResponse(req, res, {
-            message: "Key is invalid",
-            status: 405,
-          });
-        }
+      if (!key) {
+        return this.sendResponse(req, res, {
+          message: "Key is required",
+          status: 405,
+        });
       }
-
+      const keyExist = await QrModel.findOne({ key });
+      if (!keyExist) {
+        return this.sendResponse(req, res, {
+          message: "Key is invalid",
+          status: 405,
+        });
+      }
       const employeeExist = await EmployeeModel.findOne({ _id: employeeId });
       if (!employeeExist) {
         return this.sendResponse(req, res, {
@@ -127,7 +123,6 @@ class Attendance extends Response {
         employeeId,
         checkout: null,
       });
-
       if (attendanceExist) {
         let currStatus = "half";
         const s = new Date(attendanceExist?.checkin);
@@ -261,6 +256,114 @@ class Attendance extends Response {
       return this.sendResponse(req, res, {
         message: "Attendance record updated successfully",
         status: 200,
+      });
+    } catch (err) {
+      console.log(err);
+      return this.sendResponse(req, res, {
+        message: "Internal Server Error",
+        status: 500,
+      });
+    }
+  };
+
+  // customAttendance
+  customAttendance = async (req, res) => {
+    try {
+      const { employeeId, checkin } = req.body;
+
+      if (!employeeId) {
+        return this.sendResponse(req, res, {
+          message: "Employee id is required",
+          status: 405,
+        });
+      }
+      if (!checkin) {
+        return this.sendResponse(req, res, {
+          message: "Check-in time is required",
+          status: 405,
+        });
+      }
+
+      const employeeExist = await EmployeeModel.findOne({ _id: employeeId });
+      if (!employeeExist) {
+        return this.sendResponse(req, res, {
+          message: "Employee not found",
+          status: 404,
+        });
+      }
+
+      const checkinTime = new Date(checkin);
+      const attendanceExist = await AttendanceModel.findOne({
+        employeeId,
+        checkout: null,
+      });
+
+      if (attendanceExist) {
+        let currStatus = "half";
+        const s = new Date(attendanceExist.checkin);
+        const e = checkinTime;
+        const diff = e - s;
+        const extraHours = diff / (1000 * 60 * 60) - 9;
+
+        if (extraHours > 0) {
+          const extraHourEntry = new ExtraHoursModel({
+            employeeId: attendanceExist.employeeId,
+            hours: extraHours,
+            date: Date.now(),
+          });
+          await extraHourEntry.save();
+        }
+
+        if (diff / (1000 * 60 * 60) >= 8) {
+          currStatus = "full";
+        }
+
+        if (diff / (1000 * 60 * 60) >= 1) {
+          await AttendanceModel.updateOne(
+            { _id: attendanceExist._id },
+            { $set: { checkout: checkinTime, status: currStatus } }
+          );
+          return this.sendResponse(req, res, {
+            message: "Check-out successful",
+            status: 200,
+          });
+        } else {
+          return this.sendResponse(req, res, {
+            message: "Check-out time too short",
+            status: 405,
+          });
+        }
+      }
+
+      const today = new Date();
+      const startOfDay = new Date(today);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(today);
+      endOfDay.setHours(23, 59, 59, 999);
+      const attendanceExistSameDay = await AttendanceModel.findOne({
+        checkin: { $gte: startOfDay, $lt: endOfDay },
+        employeeId,
+      });
+
+      if (attendanceExistSameDay) {
+        const checkoutTime = new Date(attendanceExistSameDay.checkout);
+        const diff = today - checkoutTime;
+        if (diff / (1000 * 60 * 60) < 8) {
+          return this.sendResponse(req, res, {
+            message: "Already checked-in today.",
+            status: 405,
+          });
+        }
+      }
+
+      const newAttendance = new AttendanceModel({
+        employeeId,
+        checkin: checkinTime,
+      });
+      await newAttendance.save();
+      return this.sendResponse(req, res, {
+        message: "Check-in successful",
+        status: 201,
       });
     } catch (err) {
       console.log(err);
