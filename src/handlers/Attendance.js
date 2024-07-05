@@ -92,26 +92,30 @@ class Attendance extends Response {
   };
   markAttendance = async (req, res) => {
     try {
-      const { employeeId, key } = req.body;
+      const { employeeId, key, version } = req.body;
+      console.log(version)
       if (!employeeId) {
         return this.sendResponse(req, res, {
           message: "Employee id is required",
           status: 405,
         });
       }
-      if (!key) {
-        return this.sendResponse(req, res, {
-          message: "Key is required",
-          status: 405,
-        });
+      if (version !== "v1") {
+        if (!key) {
+          return this.sendResponse(req, res, {
+            message: "Key is required",
+            status: 405,
+          });
+        }
+        const keyExist = await QrModel.findOne({ key });
+        if (!keyExist) {
+          return this.sendResponse(req, res, {
+            message: "Key is invalid",
+            status: 405,
+          });
+        }
       }
-      const keyExist = await QrModel.findOne({ key });
-      if (!keyExist) {
-        return this.sendResponse(req, res, {
-          message: "Key is invalid",
-          status: 405,
-        });
-      }
+
       const employeeExist = await EmployeeModel.findOne({ _id: employeeId });
       if (!employeeExist) {
         return this.sendResponse(req, res, {
@@ -123,6 +127,7 @@ class Attendance extends Response {
         employeeId,
         checkout: null,
       });
+
       if (attendanceExist) {
         let currStatus = "half";
         const s = new Date(attendanceExist?.checkin);
