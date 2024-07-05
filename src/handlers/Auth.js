@@ -30,25 +30,16 @@ class Auth extends Response {
           "designation"
         );
         userDesignation = user?.designation?.title;
-
-        if (userDesignation !== "Director HR") {
+        // Check Designation
+        if (module === "hr" && userDesignation !== "Director HR") {
           return this.sendResponse(req, res, {
             message:
               "Access denied. Only HR department can perform this action.",
             status: 403,
           });
         }
-      } else {
-        employeeExist = await EmployeeModel.findOne({
-          $or: [{ email: username }, { employeeId: username }],
-        });
-        if (!employeeExist) {
-          return this.sendResponse(req, res, {
-            status: 405,
-            message: "Username/Password not correct",
-          });
-        }
       }
+      // Check Password
       const password0 = employeeExist?.password;
       const isValid = await bcrypt.compare(password, password0);
       if (!isValid) {
@@ -57,6 +48,7 @@ class Auth extends Response {
           message: "Username/Password not correct",
         });
       }
+      // Token
       let token;
       if (!remember) {
         token = jwt.sign({ employeeExist }, process.env.JWT_SECRET, {
