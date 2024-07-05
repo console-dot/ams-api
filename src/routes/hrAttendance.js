@@ -13,5 +13,6 @@ router.get("/leaves", handler.fetchLeaves);
 router.post("/mark-holiday", handler.markHoliday);
 router.get("/all-leaves", handler.fetchAllLeaves);
 router.put("/update-attendance/:id", handlerAttendance.updateAttendance);
+router.post("/mark-attendance", handlerAttendance.markAttendance);
 
 module.exports = router;
