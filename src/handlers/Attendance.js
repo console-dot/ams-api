@@ -212,7 +212,6 @@ class Attendance extends Response {
           status: 404,
         });
       }
-
       // Use existing values if not provided
       const newCheckin = checkin
         ? new Date(checkin)
@@ -223,8 +222,8 @@ class Attendance extends Response {
 
       // Update Given Fields Only
       const updateFields = {};
-      if (checkin) updateFields.checkin = new Date(checkin);
-      if (checkout) updateFields.checkout = new Date(checkout);
+      if (checkin) updateFields.checkin = newCheckin;
+      if (checkout) updateFields.checkout = newCheckout;
 
       // Calculate status if both checkin and checkout are provided
       if (newCheckin && newCheckout) {
@@ -283,7 +282,7 @@ class Attendance extends Response {
           status: 405,
         });
       }
-
+      //
       const employeeExist = await EmployeeModel.findOne({ _id: employeeId });
       if (!employeeExist) {
         return this.sendResponse(req, res, {
@@ -292,62 +291,20 @@ class Attendance extends Response {
         });
       }
 
+      //
       const checkinTime = new Date(checkin);
-      const attendanceExist = await AttendanceModel.findOne({
-        employeeId,
-        checkout: null,
-      });
-
-      if (attendanceExist) {
-        let currStatus = "half";
-        const s = new Date(attendanceExist.checkin);
-        const e = checkinTime;
-        const diff = e - s;
-        const extraHours = diff / (1000 * 60 * 60) - 9;
-
-        if (extraHours > 0) {
-          const extraHourEntry = new ExtraHoursModel({
-            employeeId: attendanceExist.employeeId,
-            hours: extraHours,
-            date: Date.now(),
-          });
-          await extraHourEntry.save();
-        }
-
-        if (diff / (1000 * 60 * 60) >= 8) {
-          currStatus = "full";
-        }
-
-        if (diff / (1000 * 60 * 60) >= 1) {
-          await AttendanceModel.updateOne(
-            { _id: attendanceExist._id },
-            { $set: { checkout: checkinTime, status: currStatus } }
-          );
-          return this.sendResponse(req, res, {
-            message: "Check-out successful",
-            status: 200,
-          });
-        } else {
-          return this.sendResponse(req, res, {
-            message: "Check-out time too short",
-            status: 405,
-          });
-        }
-      }
-
-      const today = new Date();
-      const startOfDay = new Date(today);
+      const startOfDay = new Date(checkinTime);
       startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(today);
+      const endOfDay = new Date(checkinTime);
       endOfDay.setHours(23, 59, 59, 999);
       const attendanceExistSameDay = await AttendanceModel.findOne({
         checkin: { $gte: startOfDay, $lt: endOfDay },
         employeeId,
       });
-
+      //
       if (attendanceExistSameDay) {
         const checkoutTime = new Date(attendanceExistSameDay.checkout);
-        const diff = today - checkoutTime;
+        const diff = checkinTime - checkoutTime;
         if (diff / (1000 * 60 * 60) < 8) {
           return this.sendResponse(req, res, {
             message: "Already checked-in today.",

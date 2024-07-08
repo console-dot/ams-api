@@ -16,6 +16,7 @@ class Auth extends Response {
           message: "Username/Password required",
         });
       }
+      // Check if HR
       if (module === "hr") {
         employeeExist = await EmployeeModel.findOne({
           $or: [{ email: username }, { employeeId: username }],
@@ -30,7 +31,7 @@ class Auth extends Response {
           "designation"
         );
         userDesignation = user?.designation?.title;
-        // Check Designation
+        // Check Designation and Module
         if (module === "hr" && userDesignation !== "Director HR") {
           return this.sendResponse(req, res, {
             message:
@@ -39,6 +40,10 @@ class Auth extends Response {
           });
         }
       }
+      // If module is not hr then search employee
+      employeeExist = await EmployeeModel.findOne({
+        $or: [{ email: username }, { employeeId: username }],
+      }).populate("designation");
       // Check Password
       const password0 = employeeExist?.password;
       const isValid = await bcrypt.compare(password, password0);
