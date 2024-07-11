@@ -6,6 +6,7 @@ const { Auth } = require("./Auth");
 const { Attendance } = require("./Attendance");
 const { Qr } = require("./Qr");
 const { HrAttendance } = require("./HrAttendance");
+const { Leave } = require("./Leave");
 module.exports = {
   Employee,
   File,
@@ -14,5 +15,6 @@ module.exports = {
   Auth,
   Attendance,
   Qr,
-  HrAttendance
+  HrAttendance,
+  Leave
 };

@@ -8,6 +8,7 @@ const { ResetPasswordModel } = require("./ResetPassword");
 const { ExtraHoursModel } = require("./ExtraHours");
 const { LeavesModel } = require("./Leaves");
 const { PublicHolidaysModel } = require("./PublicHolidays");
+const { LeaveModel } = require("./Leave");
 module.exports = {
   EmployeeModel,
   FileModel,
@@ -19,4 +20,5 @@ module.exports = {
   ExtraHoursModel,
   LeavesModel,
   PublicHolidaysModel,
+  LeaveModel,
 };

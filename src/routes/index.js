@@ -8,6 +8,7 @@ const attendance = require("./attendance");
 const qr = require("./qr");
 const hrModule = require("./hrAttendance");
 const temp = require("./temp");
+const leaves = require("./leaves")
 
 router.use("/employee", employee);
 router.use("/file", file);
@@ -18,5 +19,7 @@ router.use("/attendance", attendance);
 router.use("/qr", qr);
 router.use("/hr", hrModule);
 router.use("/temp", temp);
+router.use("/leaves",leaves)
+
 
 module.exports = router;
