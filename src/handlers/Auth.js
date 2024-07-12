@@ -45,6 +45,12 @@ class Auth extends Response {
         $or: [{ email: username }, { employeeId: username }],
       }).populate("designation");
       // Check Password
+      if (employeeExist === null) {
+        return this.sendResponse(req, res, {
+          status: 401,
+          message: "User not found",
+        });
+      }
       const password0 = employeeExist?.password;
       const isValid = await bcrypt.compare(password, password0);
       if (!isValid) {
