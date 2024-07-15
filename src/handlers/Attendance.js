@@ -283,7 +283,7 @@ class Attendance extends Response {
       );
 
       return this.sendResponse(req, res, {
-        message: "Attendance record updated successfully",
+        message: "Attendance record updated successfully via build v6",
         status: 200,
       });
     } catch (err) {
