@@ -212,13 +212,29 @@ class Attendance extends Response {
           status: 404,
         });
       }
+
+      // Function to convert date to PST
+      const toPST = (date) => {
+        return new Date(
+          new Intl.DateTimeFormat("en-US", {
+            timeZone: "Asia/Karachi",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
+          }).format(new Date(date))
+        );
+      };
       // Use existing values if not provided
       const newCheckin = checkin
-        ? new Date(checkin)
-        : new Date(attendanceRecord.checkin);
+        ? toPST(checkin)
+        : toPST(attendanceRecord.checkin);
       const newCheckout = checkout
-        ? new Date(checkout)
-        : new Date(attendanceRecord.checkout);
+        ? toPST(checkout)
+        : toPST(attendanceRecord.checkout);
 
       // Update Given Fields Only
       const updateFields = {};
