@@ -228,18 +228,32 @@ class Attendance extends Response {
           }).format(new Date(date))
         );
       };
-      // Use existing values if not provided
-      const newCheckin = checkin
-        ? toPST(checkin)
-        : toPST(attendanceRecord.checkin);
-      const newCheckout = checkout
-        ? toPST(checkout)
-        : toPST(attendanceRecord.checkout);
 
-      // Update Given Fields Only
-      const updateFields = {};
-      if (checkin) updateFields.checkin = newCheckin;
-      if (checkout) updateFields.checkout = newCheckout;
+      const subtractHours = (date, hours) => {
+        return new Date(date.getTime() - hours * 60 * 60 * 1000);
+      };
+
+      let newCheckin;
+      let newCheckout;
+
+      const checkinDate = new Date(checkin);
+      const checkoutDate = new Date(checkout);
+      const attendanceCheckinDate = new Date(attendanceRecord.checkin);
+      const attendanceCheckoutDate = new Date(attendanceRecord.checkout);
+
+      let updateFields = {};
+
+      // Check if checkin has changed
+      if (checkinDate.getTime() !== attendanceCheckinDate.getTime()) {
+        newCheckin = subtractHours(checkinDate, 3);
+        updateFields.checkin = newCheckin;
+      }
+
+      // Check if checkout has changed
+      if (checkoutDate.getTime() !== attendanceCheckoutDate.getTime()) {
+        newCheckout = subtractHours(checkoutDate, 3);
+        updateFields.checkout = newCheckout;
+      }
 
       // Calculate status if both checkin and checkout are provided
       if (newCheckin && newCheckout) {
