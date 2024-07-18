@@ -220,7 +220,7 @@ class Attendance extends Response {
       let newCheckin;
       let newCheckout;
 
-      // incase lanat
+      // incase we dont have checkin
       const checkinDateDB = checkin
         ? new Date(checkin)
         : new Date(attendanceRecord.checkin);
