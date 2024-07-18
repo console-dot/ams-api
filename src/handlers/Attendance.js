@@ -213,22 +213,6 @@ class Attendance extends Response {
         });
       }
 
-      // Function to convert date to PST
-      const toPST = (date) => {
-        return new Date(
-          new Intl.DateTimeFormat("en-US", {
-            timeZone: "Asia/Karachi",
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: false,
-          }).format(new Date(date))
-        );
-      };
-
       const subtractHours = (date, hours) => {
         return new Date(date.getTime() - hours * 60 * 60 * 1000);
       };
@@ -236,10 +220,21 @@ class Attendance extends Response {
       let newCheckin;
       let newCheckout;
 
+      // incase lanat
+      const checkinDateDB = checkin
+        ? new Date(checkin)
+        : new Date(attendanceRecord.checkin);
+
+      const oldCheckin = subtractHours(checkinDateDB, 3);
+      //
       const checkinDate = new Date(checkin);
-      const checkoutDate = new Date(checkout);
+      // const checkoutDate = new Date(checkout);
+      const checkoutDate = checkout ? new Date(checkout) : null;
       const attendanceCheckinDate = new Date(attendanceRecord.checkin);
-      const attendanceCheckoutDate = new Date(attendanceRecord.checkout);
+      // const attendanceCheckoutDate = new Date(attendanceRecord.checkout);
+      const attendanceCheckoutDate = attendanceRecord.checkout
+        ? new Date(attendanceRecord.checkout)
+        : null;
 
       let updateFields = {};
 
@@ -249,8 +244,12 @@ class Attendance extends Response {
         updateFields.checkin = newCheckin;
       }
 
-      // Check if checkout has changed
-      if (checkoutDate.getTime() !== attendanceCheckoutDate.getTime()) {
+      // Check if checkout has changed and is provided
+      if (
+        checkout &&
+        (!attendanceCheckoutDate ||
+          checkoutDate.getTime() !== attendanceCheckoutDate.getTime())
+      ) {
         newCheckout = subtractHours(checkoutDate, 3);
         updateFields.checkout = newCheckout;
       }
@@ -277,13 +276,35 @@ class Attendance extends Response {
         }
       }
 
+      // Calculate status if both checkin and checkout are provided
+      if (oldCheckin && newCheckout) {
+        const diff = newCheckout - oldCheckin;
+        const hoursWorked = diff / (1000 * 60 * 60);
+        let status = "half";
+        if (hoursWorked >= 8) {
+          status = "full";
+        }
+        updateFields.status = status;
+
+        // Calculate extra hours if any
+        const extraHours = hoursWorked - 9;
+        if (extraHours > 0) {
+          const extraHourEntry = new ExtraHoursModel({
+            employeeId: attendanceRecord.employeeId,
+            hours: extraHours,
+            date: new Date(),
+          });
+          await extraHourEntry.save();
+        }
+      }
+
       await AttendanceModel.updateOne(
         { _id: id, employeeId },
         { $set: updateFields }
       );
 
       return this.sendResponse(req, res, {
-        message: "Attendance record updated successfully via build v6",
+        message: "Attendance record updated successfully via build v7",
         status: 200,
       });
     } catch (err) {
@@ -322,7 +343,15 @@ class Attendance extends Response {
       }
 
       //
-      const checkinTime = new Date(checkin);
+      const subtractHours = (dateString, hours) => {
+        const date = new Date(dateString);
+        date.setHours(date.getHours() - hours);
+        return date;
+      };
+
+      //
+      // const checkinTime = new Date(checkin);
+      const checkinTime = subtractHours(checkin, 3);
       const startOfDay = new Date(checkinTime);
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date(checkinTime);
