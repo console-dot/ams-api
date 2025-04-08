@@ -456,7 +456,7 @@ class HrAttendance extends Response {
     }
   };
   markHoliday = async (req, res) => {
-    const { reason, start } = req.body;
+    const { reason, start, end } = req.body;
     console.log(start, reason);
     const providedStartDate = new Date(start);
     if (!providedStartDate) {
@@ -487,10 +487,20 @@ class HrAttendance extends Response {
           });
         }
 
-        const holiDayAdded = new PublicHolidaysModel({
+        // Create a new holiday entry
+        const holidayData = {
           holidayDate: providedStartDate,
           reasonForLeave: reason,
-        });
+        };
+
+        // If end date is provided, add it to the holiday data
+        if (end) {
+          const providedEndDate = new Date(end);
+          holidayData.endHolidayDate = providedEndDate; // Only set if end date exists
+        }
+
+        // Save the holiday entry
+        const holiDayAdded = new PublicHolidaysModel(holidayData);
         await holiDayAdded.save();
         return this.sendResponse(req, res, {
           message: "Holiday date added successfully",
@@ -501,6 +511,54 @@ class HrAttendance extends Response {
       console.error(error);
       return this.sendResponse(req, res, {
         message: "Internal server error",
+        status: 500,
+      });
+    }
+  };
+  fetchAllHolidays = async (req, res) => {
+    const { start, end } = req.query;
+    const providedStartDate = new Date(start);
+    providedStartDate.setHours(0, 0, 0, 0);
+    const providedEndDate = new Date(end);
+    providedEndDate.setHours(0, 0, 0);
+    try {
+      const token = req.headers.authorization;
+      if (!token) {
+        return this.sendResponse(req, res, {
+          message: "Token is not valid",
+          status: 400,
+        });
+      } else {
+        const decoded = jwt.decode(token);
+        const id = decoded.employeeExist?._id;
+        const isHr = await EmployeeModel.findOne({ _id: id }).populate(
+          "designation"
+        );
+        if (isHr.designation.title !== "Director HR") {
+          return this.sendResponse(req, res, {
+            message:
+              "Access denied. Only HR department can perform this action.",
+            status: 400,
+          });
+        }
+        const holidays = await PublicHolidaysModel.find({}).sort({ holidayDate: -1 });
+        console.log(holidays);
+        if (!holidays) {
+          return this.sendResponse(req, res, {
+            message: "No Holidays are found ",
+            status: 404,
+          });
+        }
+        return this.sendResponse(req, res, {
+          message: "Holidays are fetched successfull",
+          status: 200,
+          data: holidays,
+        });
+      }
+    } catch (error) {
+      console.log(error);
+      return this.sendResponse(req, res, {
+        message: "Internal Server Error",
         status: 500,
       });
     }

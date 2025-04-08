@@ -6,6 +6,9 @@ const publicHolidaysSchema = new Schema({
     type: Date,
     required: [true, "Please provide at least one leave date"],
   },
+  endHolidayDate: {
+    type: Date,
+  },
   reasonForLeave: {
     type: String,
     required: [true, "Please provide the reason for leave"],

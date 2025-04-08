@@ -11,6 +11,7 @@ router.get("/report", handler.getReport);
 router.post("/mark-leave", handler.markLeave);
 router.get("/leaves", handler.fetchLeaves);
 router.post("/mark-holiday", handler.markHoliday);
+router.get("/all-holidays", handler.fetchAllHolidays);
 router.get("/all-leaves", handler.fetchAllLeaves);
 router.put("/update-attendance/:id", handlerAttendance.updateAttendance);
 router.post("/mark-attendance", handlerAttendance.customAttendance);
