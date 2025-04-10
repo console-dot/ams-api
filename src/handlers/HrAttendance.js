@@ -198,6 +198,7 @@ class HrAttendance extends Response {
     const endDate = new Date(end);
     const newEndDate = new Date(endDate);
     newEndDate.setDate(newEndDate.getDate() + 1);
+  
     try {
       const token = req.headers.authorization;
       if (!token) {
@@ -206,54 +207,73 @@ class HrAttendance extends Response {
           status: 401,
         });
       }
+  
       if (endDate > Date.now()) {
         return this.sendResponse(req, res, {
           message: "End date should not be greater than today's date",
           status: 400,
         });
       }
+  
       const decoded = jwt.decode(token);
       const id = decoded.employeeExist._id;
       const user = await EmployeeModel.findById(id).populate("designation");
       const userDesignation = user?.designation?.title;
-
+  
       if (userDesignation !== "Director HR") {
         return this.sendResponse(req, res, {
           message: "Access denied. Only HR department can perform this action.",
           status: 403,
         });
       }
-      const isEmployee = await EmployeeModel.findOne({ employeeId: empId });
-      if (!isEmployee) {
-        return this.sendResponse(req, res, {
-          message: "User does not exist with this id",
-          status: 404,
-        });
+  
+      let employees = [];
+      if (empId) {
+        const isEmployee = await EmployeeModel.findOne({ employeeId: empId });
+        if (!isEmployee) {
+          return this.sendResponse(req, res, {
+            message: "User does not exist with this id",
+            status: 404,
+          });
+        }
+        employees = [isEmployee];
+      } else {
+        // Fetch all employees if empId not provided
+        employees = await EmployeeModel.find({});
       }
-      let absents = await getLeaves2(start, end, empId);
-      const leaves = await LeavesModel.find({
-        employeeId: isEmployee?._id,
-        leaveDate: { $gte: new Date(start).setHours(0, 0, 0) },
-      });
-      const tLeaves = leaves.map((obj) => {
-        return obj?.leaveDate;
-      });
-      const totalAbsents = absents?.absent?.filter(
-        (absent) =>
-          !tLeaves.some((curr) =>
-            areDatesEqualIgnoringTime(new Date(curr), new Date(absent))
-          )
-      );
-      return this.sendResponse(req, res, {
-        message: "Report is Fetched Successfully",
-        status: 200,
-        data: {
+  
+      const allReports = [];
+  
+      for (const emp of employees) {
+        const absents = await getLeaves2(start, end, emp.employeeId);
+  
+        const leaves = await LeavesModel.find({
+          employeeId: emp._id,
+          leaveDate: { $gte: new Date(start).setHours(0, 0, 0) },
+        });
+  
+        const tLeaves = leaves.map((obj) => obj?.leaveDate);
+  
+        const totalAbsents = absents?.absent?.filter(
+          (absent) =>
+            !tLeaves.some((curr) =>
+              areDatesEqualIgnoringTime(new Date(curr), new Date(absent))
+            )
+        );
+  
+        allReports.push({
+          user: emp,
           attendance: absents?.attendance,
-          user: isEmployee,
           leaves: leaves,
           abDates: totalAbsents,
-          publicHolidays: absents.publicHolidays,
-        },
+          publicHolidays: absents?.publicHolidays,
+        });
+      }
+  
+      return this.sendResponse(req, res, {
+        message: "Report fetched successfully",
+        status: 200,
+        data: allReports,
       });
     } catch (error) {
       console.log(error);
@@ -263,6 +283,8 @@ class HrAttendance extends Response {
       });
     }
   };
+  
+  
   markLeave = async (req, res) => {
     const { start, end, empId } = req.body;
     try {
@@ -457,7 +479,7 @@ class HrAttendance extends Response {
   };
   markHoliday = async (req, res) => {
     const { reason, start, end } = req.body;
-    console.log(start, reason);
+
     const providedStartDate = new Date(start);
     if (!providedStartDate) {
       return this.sendResponse(req, res, {
@@ -541,8 +563,9 @@ class HrAttendance extends Response {
             status: 400,
           });
         }
-        const holidays = await PublicHolidaysModel.find({}).sort({ holidayDate: -1 });
-        console.log(holidays);
+        const holidays = await PublicHolidaysModel.find({}).sort({
+          holidayDate: -1,
+        });
         if (!holidays) {
           return this.sendResponse(req, res, {
             message: "No Holidays are found ",
@@ -630,6 +653,10 @@ const getLeaves2 = async (start, end, empId) => {
 
       if (isToday && !isCheckinDone) {
         continue;
+      }
+
+      if (result.getTime() > today.getTime()) {
+        continue; // skip future dates
       }
 
       let a = attendances.filter(({ checkin }) => {

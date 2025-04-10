@@ -14,6 +14,7 @@ router.post("/mark-holiday", handler.markHoliday);
 router.get("/all-holidays", handler.fetchAllHolidays);
 router.get("/all-leaves", handler.fetchAllLeaves);
 router.put("/update-attendance/:id", handlerAttendance.updateAttendance);
+router.delete("/delete-attendance/:id", handlerAttendance.deleteAttendance);
 router.post("/mark-attendance", handlerAttendance.customAttendance);
 
 module.exports = router;
