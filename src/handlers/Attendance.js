@@ -22,7 +22,6 @@ function generateRandomKey(length) {
 
 class Attendance extends Response {
   getAllAttendance = async () => {
-    console.log("first");
     try {
       const attendance = await AttendanceModel.find()
         .populate({
@@ -389,6 +388,30 @@ class Attendance extends Response {
       });
     }
   };
+
+// delete attendance
+  deleteAttendance = async (req, res) => {
+      try {
+        const { id } = req.params;
+        const attendanceExist = await AttendanceModel.deleteOne({ _id: id });
+        if (attendanceExist.deletedCount > 0) {
+          return this.sendResponse(req, res, {
+            message: 'Attendance deleted',
+            status: 200,
+          });
+        }
+        return this.sendResponse(req, res, {
+          message: 'Nothing to delete',
+          status: 405,
+        });
+      } catch (err) {
+        console.log(err);
+        return this.sendResponse(req, res, {
+          message: 'Internal server error',
+          status: 500,
+        });
+      }
+    };
 }
 
 module.exports = { Attendance, generateRandomKey };
